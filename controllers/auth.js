@@ -3,6 +3,8 @@ const HttpStatus = require("http-status-codes");
 const User = require("../models/userModels");
 const Helpers = require("../Helpers/helpers");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const dbConfig = require("../config/secret");
 module.exports = {
   async CreateUser(req, res) {
     const schema = Joi.object().keys({
@@ -47,16 +49,19 @@ module.exports = {
           .status(HttpStatus.BAD_REQUEST)
           .json({ message: "Error hashing password" });
       }
-      // const body = {
-      //   username: Helpers.firstUpper(value.userName),
-      //   email: Helpers.lowerCase(value.email),
-      //   password: hash
-      // };
-      User.create(req.body)
+      const body = {
+        username: value.userName,
+        email: value.email,
+        password: hash
+      };
+      User.create(body)
         .then(user => {
+          const token = jwt.sign({ data: user }, dbConfig.secret, {
+            expiresIn: 120
+          });
           res
             .status(HttpStatus.CREATED)
-            .json({ message: "User created successfully", user });
+            .json({ message: "User created successfully", user, token });
         })
         .catch(err => {
           res
